@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        jar="E:\projects\Google2\app\build\intermediates\exploded-aar\Google2\paylib\unspecified\jars\classes.jar"
+        jumboMode="false"
+        revision="23.0.2"
+        sha1="5963f1778e1763849780eb7f17cf13e8d11ad15c">
+        <dex dex="E:\projects\Google2\app\build\intermediates\pre-dexed\debug\classes-26520b252ae711d7c37d336aaa40b4cdad864746.jar" />
+    </item>
+
+</items>

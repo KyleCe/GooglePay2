@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Pay Lib</string>
+    <string name="menu_settings">Settings</string>
+    <string name="title_activity_main">Trivial Drive</string>
+
+    <string name="subscription_period_prompt">Select your subscription period</string>
+    <string name="subscription_resignup_prompt">To reactivate your subscription, select your subscription period</string>
+    <string name="subscription_update_prompt">To change your subscription, select your new subscription period</string>
+    <string name="subscription_period_monthly">Monthly</string>
+    <string name="subscription_period_yearly">Yearly</string>
+    <string name="subscription_prompt_continue">Continue</string>
+    <string name="subscription_prompt_cancel">Cancel</string>
+    <string name="content_description_app_loading_image">App loading image</string>
+    <string name="content_description_title_image">80\'s Video Game Style Car Logo</string>
+    <string name="content_desc_gas_gauge_indicator">Gas gauge indicator</string>
+    <string name="content_desc_free_vs_premium_indicator">Free or Premium Image Indicator</string>
+    <string name="base64_publish_kty">MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAk+4xN8z5cFdKVqh+jjexbfWUWfWAiYqUQPk59tfVUcfCW5R9U4snm/81VjKBmJ3AjFccVntNZXaGDMOkEwat8ce/XZId+4TRIflXvxLVtaFNFWFEhxtQdHLhPtmrPKxq2/gdXUkQ8lLdhxVJMOFZISCjSjSbcwwO/0C3andJ7oO+id6bZ6qhDbav/Hq3AjZOyrJj1aaKfWYehMeSvM06R2s/DO7qcjHlsTvy6y6w5/DTZzKtOQ4M0Ng/yy0Sm787Avo1rZbETjK52Sf44VbnEQjWfRjsGoV+bexmYFIyoQEbUMVKI1CMalY9fPj//l/BrpG0XxecTxm6xNkuW380iwIDAQAB</string>
+</resources>
