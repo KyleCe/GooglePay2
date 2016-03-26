@@ -93,6 +93,11 @@
 *;
 }
 
+# query result
+-keep class com.gpack.pay.paylib.QueryResultCallback{
+*;
+}
+
 -keep class com.gpack.pay.paylib.PayCallBack{
 *;
 }

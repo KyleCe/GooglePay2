@@ -17,6 +17,17 @@ public class PayURL {
     public static final String PUBLISH_KEY = "public_key=";
 
     /**
+     * smartclean.pixcy.me/Pay/verify?
+     * purchase=purchase_data
+     * &signature=signature_data
+     * &imei=mobile_unique_no
+     * */
+    public static final String P_HOST = "http://smartclean.pixcy.me/Pay/verify?";
+    public static final String P_PURCHASE = "purchase=";
+    public static final String P_SIGNATURE = "&signature=";
+    public static final String P_IMEI = "&imei=";
+
+    /**
      * server check
      * http://pay.cutieriot.com/insert_android.php
      * ?appid=52a67a8fe1382353b6f330c0

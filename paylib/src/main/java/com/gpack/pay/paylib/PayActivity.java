@@ -5,7 +5,6 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.View;
@@ -239,6 +238,8 @@ public class PayActivity extends Activity implements IabBroadcastListener,
         this.productId = productId;
     }
 
+    String SKU_ANDROID_TEST_PURCHASE_GOOD = "android.test.purchased";
+
     // Listener that's called when we finish querying the items and subscriptions we own
     IabHelper.QueryInventoryFinishedListener mGotInventoryListener = new IabHelper.QueryInventoryFinishedListener() {
         public void onQueryInventoryFinished(IabResult result, Inventory inventory) {
@@ -251,6 +252,13 @@ public class PayActivity extends Activity implements IabBroadcastListener,
             if (result.isFailure()) {
                 complain("Failed to query inventory: " + result);
                 return;
+            }
+
+            // FIXME: 2016/3/25 consume android.test.purchased
+            if (inventory.hasPurchase(SKU_ANDROID_TEST_PURCHASE_GOOD)) {
+                mHelper.consumeAsync(inventory.getPurchase(SKU_ANDROID_TEST_PURCHASE_GOOD), null);
+
+                DU.sd("test purchase consuming", "real happen");
             }
 
             Log.d(TAG, "Query inventory was successful.");
@@ -295,16 +303,20 @@ public class PayActivity extends Activity implements IabBroadcastListener,
             // Check for gas delivery -- if we own gas, we should fill up the tank immediately
             String sku = TextU.isEmpty(productId) ? SKU_GAS : productId;
             Purchase gasPurchase = inventory.getPurchase(sku);
+
+
+            Log.d(TAG, "product ownership judging");
             if (gasPurchase != null && verifyDeveloperPayload(gasPurchase)) {
                 Log.d(TAG, "We have gas. Consuming it.");
-                
-                // FIXME: 2016/2/18
-                try {
-                    mHelper.consumeAsync(inventory.getPurchase(sku), mConsumeFinishedListener);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return;
-                }
+
+//                // FIXME: 2016/2/18 not consume, hold the goods forever
+                if (!PayActivity.isReportTypePixcy() || PayDelegate.getConsumeOrKeep() == PayDelegate.CONSUME)
+                    try {
+                        mHelper.consumeAsync(inventory.getPurchase(sku), mConsumeFinishedListener);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return;
+                    }
 
                 return;
             }
@@ -377,9 +389,8 @@ public class PayActivity extends Activity implements IabBroadcastListener,
                 mPurchaseFinishedListener, payload);
 
         // post the purchase data to server
-        postPurchaseDataToServerBefore(productId, payload);
-
-
+        if (PayDelegate.getReportType() != PayDelegate.TYPE_PIXCY)/*type pixcy, no need to report before*/
+            postPurchaseDataToServerBefore(productId, payload);
     }
 
     /**
@@ -415,22 +426,40 @@ public class PayActivity extends Activity implements IabBroadcastListener,
     }
 
     /**
+     * if report type pixcy??
+     */
+    public static boolean isReportTypePixcy() {
+        return PayDelegate.getReportType() == PayDelegate.TYPE_PIXCY;
+    }
+
+    /**
      * post purchase data to server after the purchase operation
      */
-    private void postPurchaseDataToServerAfter(String purchaseDataInJsonString) {
-        // http://r.cutieriot.com/?type=purchase&uid=xxx&purchase_data={purchase_data}
-        String url = urlHeadBuilder("purchase");
-        url += "&" + PayURL.PURCHASE_DATA_KEY + purchaseDataInJsonString;
+    private void postPurchaseDataToServerAfter(Purchase purchase) {
+        String purchaseDataInJsonString = purchase.getOriginalJson();
+        String signature = purchase.getSignature();
 
+        String url = "";
+        HashMap<String, String> param4CallBack = new HashMap<>();
+
+        if (isReportTypePixcy()) {
+            url = PayURL.P_HOST + PayURL.P_PURCHASE + purchaseDataInJsonString
+                    + PayURL.P_SIGNATURE + signature
+                    + PayURL.P_IMEI + PayDelegate.getPhoneImei();
+            param4CallBack.put("imei", PayDelegate.getPhoneImei());
+        } else {
+            // http://r.cutieriot.com/?type=purchase&uid=xxx&purchase_data={purchase_data}
+            url = urlHeadBuilder("purchase");
+            url += "&" + PayURL.PURCHASE_DATA_KEY + purchaseDataInJsonString;
+
+            // announce the api user by setting the call back
+            param4CallBack.put("uid", PayDelegate.getUserId());
+        }
         recordDataToServer(url);
 
-        // announce the api user by setting the call back
-        HashMap<String, String> param4CallBack = new HashMap<>();
-        param4CallBack.put("uid", PayDelegate.getUserId());
         param4CallBack.put("purchase_data", TextU.isEmpty(purchaseDataInJsonString) ?
                 "purchase data is null, check your code and account" : purchaseDataInJsonString);
         announceSuccessCallback(param4CallBack);
-
     }
 
     /**
@@ -661,6 +690,9 @@ public class PayActivity extends Activity implements IabBroadcastListener,
      * Verifies the developer payload of a purchase.
      */
     boolean verifyDeveloperPayload(Purchase p) {
+        if (PayDelegate.getConsumeOrKeep() == PayDelegate.CONSUME)
+            return true;
+
         String payload = p.getDeveloperPayload();
 
         /*
@@ -712,21 +744,24 @@ public class PayActivity extends Activity implements IabBroadcastListener,
             Log.d(TAG, "Purchase successful.");
 
             // fixme: 2016/2/17 server check
-            recordDataToServer2ndEdition(purchase);
+            if (!isReportTypePixcy())
+                recordDataToServer2ndEdition(purchase);
 
             // post purchase info to server
             DU.sd("post purchase info after purchase", "purchase json string=" + purchase.getOriginalJson());
-            postPurchaseDataToServerAfter(purchase.getOriginalJson());
+            postPurchaseDataToServerAfter(purchase);
 
             if (purchase.getSku().equals(SKU_GAS) || purchase.getSku().equals(productId)) {
                 // bought 1/4 tank of gas. So consume it.
                 Log.d(TAG, "Purchase is gas. Starting gas consumption.");
 
-                try {
-                    mHelper.consumeAsync(purchase, mConsumeFinishedListener);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                // FIXME: 2016/2/18  not consume, hold the goods forever
+                if (!PayActivity.isReportTypePixcy() || PayDelegate.getConsumeOrKeep() == PayDelegate.CONSUME)
+                    try {
+                        mHelper.consumeAsync(purchase, mConsumeFinishedListener);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
 
             } else if (purchase.getSku().equals(SKU_PREMIUM)) {
@@ -867,7 +902,7 @@ public class PayActivity extends Activity implements IabBroadcastListener,
     }
 
     void alert(String message) {
-        if(!getPackageName().startsWith("com.example"))
+        if (!getPackageName().startsWith("com.example"))
             return;// not example, fast fail
 
         AlertDialog.Builder bld = new AlertDialog.Builder(this);

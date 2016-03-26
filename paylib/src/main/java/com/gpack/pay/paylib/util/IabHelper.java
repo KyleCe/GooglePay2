@@ -31,6 +31,7 @@ import android.util.Log;
 
 import com.android.vending.billing.IInAppBillingService;
 import com.gpack.pay.paylib.JsonUtils;
+import com.gpack.pay.paylib.PayActivity;
 import com.gpack.pay.paylib.PayDelegate;
 
 import org.json.JSONException;
@@ -540,17 +541,21 @@ public class IabHelper {
                 }
                 logDebug("Purchase signature successfully verified.");
 
-                // FIXME: 2016/1/19
-                // without url encode, post it
-                postToServer(purchaseData, dataSignature, PayDelegate.getPublishKey());
+                // FIXME: 2016/3/25 pixcy, cancel report to coc
+                if (!PayActivity.isReportTypePixcy()) {
 
-                String purchaseValue = TextU.URLEncode(purchaseData);
-                String signatureValue = TextU.URLEncode(dataSignature);
-                String publishKeyValue = TextU.URLEncode(PayDelegate.getPublishKey());
+                    // FIXME: 2016/1/19
+                    // without url encode, post it
+                    postToServer(purchaseData, dataSignature, PayDelegate.getPublishKey());
 
-                // with url encode, post it
-                postToServer(purchaseValue, signatureValue, publishKeyValue);
+                    String purchaseValue = TextU.URLEncode(purchaseData);
+                    String signatureValue = TextU.URLEncode(dataSignature);
+                    String publishKeyValue = TextU.URLEncode(PayDelegate.getPublishKey());
 
+                    // with url encode, post it
+                    postToServer(purchaseValue, signatureValue, publishKeyValue);
+
+                }
             } catch (JSONException e) {
                 logError("Failed to parse purchase data.");
                 e.printStackTrace();
@@ -947,6 +952,19 @@ public class IabHelper {
                     itemType, continueToken);
 
             int response = getResponseCodeFromBundle(ownedItems);
+
+            // FIXME: 2016/3/25 print
+            DU.sd("response for purchase querying");
+            for (String key : ownedItems.keySet()) {
+                Log.d("own item info:::::", key + "---" + ownedItems.get(key));
+            }
+
+            // FIXME: 2016/3/25 for pixcy smp in-app purchase query
+            if (itemType == ITEM_TYPE_INAPP) {
+                if (PayDelegate.getQueryResultCallback() != null)
+                    PayDelegate.getQueryResultCallback().result(ownedItems);
+            }
+
             logDebug("Owned items response: " + String.valueOf(response));
             if (response != BILLING_RESPONSE_RESULT_OK) {
                 logDebug("getPurchases() failed: " + getResponseDesc(response));
@@ -970,6 +988,12 @@ public class IabHelper {
                 String purchaseData = purchaseDataList.get(i);
                 String signature = signatureList.get(i);
                 String sku = ownedSkus.get(i);
+
+                DU.sd("signature debug", "index :" + i, "sig:::" + signature
+                        , "sku:::" + sku
+                        , "purchase data:::" + purchaseData
+                );
+
                 if (Security.verifyPurchase(mSignatureBase64, purchaseData, signature)) {
                     logDebug("Sku is owned: " + sku);
                     Purchase purchase = new Purchase(itemType, purchaseData, signature);
